@@ -1,0 +1,5 @@
+Criar notebooks para cada HMM
+
+Salvar resultados do HMM
+Salvar e carregar estados em um arquivo
+Continuar treinamento carregando estados salvos e usando o Count
