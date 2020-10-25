@@ -254,6 +254,18 @@ class HMM:
 
     return tests[n][1], result, tests[n][0]
 
+  def ExibeMudancasEstadoIncorretas(self, observacoes, previsto, real):
+    prevPrevisto = previsto[0]
+    prevReal = real[0]
+    
+    i = 0
+    for obs in observacoes:
+      if (prevPrevisto != previsto[i] and real[i] != previsto[i]) or (prevReal != real[i] and real[i] != previsto[i]):
+        print("Obs:", obs, "/ Previsto:", previsto[i], "/ Real:", real[i])
+      prevPrevisto = previsto[i]
+      prevReal = real[i]
+      i+=1
+
   def separaDadosParaValidacao(self, data):
     tests = []
     for test in data:
