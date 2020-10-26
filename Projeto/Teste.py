@@ -6,4 +6,4 @@
 import tratamentoTexto as TT
 
 voc = TT.GetVocFromScrapy("../Dados/vocabularioWikipediaSujo.json")
-TT.SaveVocabulario("/Dados/vocabularioWikipediaLimpo.txt", voc)
+TT.SaveVocabulario("../Dados/vocabularioWikipediaLimpo.txt", voc)
