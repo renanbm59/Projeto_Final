@@ -63,5 +63,6 @@ def SaveVocabulario(path, V):
   with open(path, "w", encoding="utf-8") as f:
     for word in V:
       f.write(word+"\n")
+  print("Salvo com sucesso!")
       
 #def MesclarDatasetVagas(path1, path2, pathSaida):
