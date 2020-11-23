@@ -9,28 +9,31 @@ class HMM_Vagas_V2(HMM):
     self.unkPercent = unkPercent/100
     
   def atualizaValores(self, pi, A, B):
-    countPi = 0
+    #Pi
     for qtd in pi.values():
-      countPi += qtd
+      countPi += qtd      
+    for estado in self.estados:
+      if pi[estado] == 0:
+        pi[estado] = 1
+        countPi += 1
+        
     for estado in self.estados:
       #Pi
       self.Pi[estado] = pi[estado] / countPi
-      if countPi == 0:
-        countPi = 1
       #A
       countA = 0
       for qtd in A[estado].values():
+        if qtd == 0:
+            qtd = 1
         countA += qtd
-      if countA == 0:
-        countA = 1
       for subState in A[estado]:
         self.A[estado][subState] = A[estado][subState] / countA
       #B
       countB = 0
       for qtd in B[estado].values():
+        if qtd == 0:
+            qtd = 1
         countB += qtd
-      if countB == 0:
-        countB = 1
       qtdUnk = int(countB * self.unkPercent)
       countB += qtdUnk
       for observacao in B[estado]:
@@ -38,14 +41,19 @@ class HMM_Vagas_V2(HMM):
           self.B[estado][observacao] = qtdUnk
         self.B[estado][observacao] = B[estado][observacao] / countB
 
-  def fit(self):
+  def fit(self, isNewModel = True):
     
     t0 = datetime.now()
     count = 0
-    self.inicializaEstados()
+    if isNewModel:
+      self.inicializaEstados()
+      
     Pi = self.Pi.copy()
     A = self.A.copy()
     B = self.B.copy()
+    CountPi = self.CountPi.copy()
+    CountA = self.CountA.copy()
+    CountB = self.CountB.copy()
     
     for linha in self.train:
       estadoAnterior = 0

@@ -1,14 +1,15 @@
 import numpy as np
+import json
+import os
 from datetime import datetime
 
 class HMM:
 
   def __init__(self, data, trainPerc, checkpoint, estados):
     self.checkpoint = checkpoint
-    self.data = data
     trainSize = int(len(data) * trainPerc)
-    self.train = self.data[:trainSize]
-    self.tests = self.data[trainSize:]
+    self.train = data[:trainSize]
+    self.tests = data[trainSize:]
     self.estados = estados
     self.observacoes = ['<unk>']
 
@@ -16,16 +17,21 @@ class HMM:
     self.Pi = {} # initial state distribution
     self.A = {}  # state transition matrix
     self.B = {}  # output distribution
+    self.CountPi = 0
+    self.CountA = {}
+    self.CountB = {}
 
     for estado in self.estados:
       #Pi
       self.Pi[estado] = 0
       #A
       self.A[estado] = {}
+      self.CountA[estado] = 0
       for std in self.estados:
         self.A[estado][std] = 0
       #B
       self.B[estado] = {}
+      self.CountB[estado] = 0
       for obs in self.observacoes:
         self.B[estado][obs] = 0
 
@@ -226,6 +232,12 @@ class HMM:
     percTotal =  acertosVagas/totalVagas
     perc = acertosPar/totalPar
 
+    self.resultadosFullCost = percTotal, perc, percTransicao, percEstado
+    self.exibeFullCost()
+
+  def exibeFullCost(self):
+    percTotal, perc, percTransicao, percEstado = self.resultadosFullCost
+    
     print("Loss:", perc)
     print("Percentual acertos totais:", percTotal)
     for estado in percTransicao.keys():
@@ -234,7 +246,6 @@ class HMM:
       else:
         print("Loss em", estado, percEstado[estado])
       print("\t", percTransicao[estado])
-    return percTotal, perc, percTransicao, percEstado
 
   def test(self):
     return self.cost(self.tests)
@@ -277,3 +288,69 @@ class HMM:
       tests.append([testState, testObs])
 
     return tests
+
+  def salvaResultados(self, path):
+    data = {}
+    data["A"] = self.A
+    data["B"] = self.B
+    data["Pi"] = self.Pi   
+    #data["CountA"] = self.CountA
+    #data["CountB"] = self.CountB
+    #data["CountPi"] = self.CountPi 
+    with open(path, 'w') as fp:
+      json.dump(data, fp)
+
+  def carregaResultados(self, path):  
+    with open(path, 'r') as fp:
+      data = json.load(fp)
+    
+    self.A = data["A"]    
+    self.B = data["B"]    
+    self.Pi = data["Pi"]
+    #self.CountA = data["CountA"]
+    #self.CountB = data["CountB"]
+    #self.CountPi = data["CountPi"]
+
+  def salvaDados(self, path):
+    data = {}
+    data["Train"] = self.train
+    data["Tests"] = self.tests
+    data["Estados"] = self.estados
+    data["Observacoes"] = self.observacoes
+    with open(path, 'w') as fp:
+      json.dump(data, fp)
+
+  def carregaDados(self, path):  
+    with open(path, 'r') as fp:
+      data = json.load(fp)
+    
+    self.train = data["Train"]    
+    self.tests = data["Tests"]    
+    self.estados = data["Estados"]
+    self.observacoes = data["Observacoes"]
+
+  def salvaTestes(self, path):
+    data = {}
+    data["teste"] = self.resultadosFullCost   
+    with open(path, 'w') as fp:
+      json.dump(data, fp)
+
+  def carregaTestes(self, path):  
+    with open(path, 'r') as fp:
+      data = json.load(fp)
+    
+    self.resultadosFullCost = data["teste"]
+    
+  def salvaTudo(self, path, createFolder = False):
+    if createFolder:
+      os.mkdir(path)
+      
+    self.salvaResultados(path + "/Resultados.json")
+    self.salvaDados(path + "/Dados.json")
+    self.salvaTestes(path + "/Testes.json")
+
+  def carregaTudo(self, path):  
+      
+    self.carregaResultados(path + "/Resultados.json")
+    self.carregaDados(path + "/Dados.json")
+    self.carregaTestes(path + "/Testes.json")
