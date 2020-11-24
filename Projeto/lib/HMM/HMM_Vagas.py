@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 class HMM:
-
+  
   def __init__(self, data, trainPerc, checkpoint, estados):
     self.checkpoint = checkpoint
     trainSize = int(len(data) * trainPerc)
@@ -13,96 +13,101 @@ class HMM:
     self.estados = estados
     self.observacoes = ['<unk>']
 
-  def inicializaEstados(self):
+  def inicializaValores(self):
     self.Pi = {} # initial state distribution
     self.A = {}  # state transition matrix
     self.B = {}  # output distribution
-    self.CountPi = 0
+    self.CountPi = {}
     self.CountA = {}
     self.CountB = {}
 
     for estado in self.estados:
       #Pi
       self.Pi[estado] = 0
+      self.CountPi[estado] = 0
       #A
       self.A[estado] = {}
-      self.CountA[estado] = 0
+      self.CountA[estado] = {}
       for std in self.estados:
         self.A[estado][std] = 0
+        self.CountA[estado][std] = 0
       #B
       self.B[estado] = {}
-      self.CountB[estado] = 0
+      self.CountB[estado] = {}
       for obs in self.observacoes:
         self.B[estado][obs] = 0
-
-  def atualizaValores(self, pi, A, B):
-    countPi = 0
-    for qtd in pi.values():
-      countPi += qtd
+        self.CountB[estado][obs] = 0
+    
+    return self.CountPi, self.CountA, self.CountB
+    
+  def atualizaValores(self):
+    #Pi
+    totalPi = 0
+    for qtd in self.CountPi.values():
+      if qtd == 0:
+        qtd = 1
+      totalPi += qtd      
+    for estado in self.estados:
+      if self.CountPi[estado] == 0:
+        self.CountPi[estado] = 1
+        totalPi += 1
+        
     for estado in self.estados:
       #Pi
-      self.Pi[estado] = pi[estado] / countPi
-      if countPi == 0:
-        countPi = 1
+      self.Pi[estado] = self.CountPi[estado] / totalPi
       #A
-      countA = 0
-      for qtd in A[estado].values():
-        countA += qtd
-      if countA == 0:
-        countA = 1
-      for subState in A[estado]:
-        self.A[estado][subState] = A[estado][subState] / countA
+      totalA = 0
+      for qtd in self.CountA[estado].values():
+        if qtd == 0:
+            qtd = 1
+        totalA += qtd
+      for subState in self.estados:
+        self.A[estado][subState] = self.CountA[estado][subState] / totalA
       #B
-      countB = 0
-      for qtd in B[estado].values():
-        countB += qtd
-      if countB == 0:
-        countB = 1
-      for observacao in B[estado]:
-        self.B[estado][observacao] = B[estado][observacao] / countB
+      totalB = 0
+      for qtd in self.CountB[estado].values():
+        if qtd == 0:
+            qtd = 1
+        totalB += qtd
+      for observacao in self.observacoes:
+        self.B[estado][observacao] = self.CountB[estado][observacao] / totalB
 
-  def fit(self):
+  def fit(self, firstFit = True):
     
     t0 = datetime.now()
+    checkProgress = len(self.train) // 100
     count = 0
-    #costs = []
-    self.inicializaEstados()
-    Pi = self.Pi.copy()
-    A = self.A.copy()
-    B = self.B.copy()
+    if firstFit:
+      self.inicializaValores()
+
+    print("Calculating fit<", end = '')
     
     for linha in self.train:
       estadoAnterior = 0
       for estado, obs in linha:
-        obs = self.verificaVocabulario(obs)
+        self.atualizaVocabulario(obs)
         if estadoAnterior == 0:
-          Pi[estado] += 1
+          self.CountPi[estado] += 1
         else:
-          A[estadoAnterior][estado] +=1
+          self.CountA[estadoAnterior][estado] +=1
                 
-        B[estado][obs] +=1
+        self.CountB[estado][obs] +=1
         estadoAnterior = estado
       count+=1
-
-      if count % self.checkpoint == 0:
-        print("Linha", count)
-        #self.atualizaValores(Pi, A, B)
-        #costs.append(self.cost())
-
-    self.atualizaValores(Pi, A, B)     
       
-    print("A:", self.A)
-    #print("B:", self.B)
-    print("pi:", self.Pi)
+      if count % checkProgress == 0:
+        print(".", end = '')
+      if count % self.checkpoint == 0:
+        self.atualizaValores()
 
+    print(">")
     print("Fit duration:", (datetime.now() - t0))
-    #plt.plot(costs)
-    #plt.show()
 
   def atualizaVocabulario(self, observacao):
     if observacao not in self.observacoes:
       self.observacoes.append(observacao)
-      for estado in self.B.keys():
+      for estado in self.estados:
+        self.CountB[estado][observacao] = 0
         self.B[estado][observacao] = 0
 
   def predict(self, obs):
@@ -130,6 +135,7 @@ class HMM:
   def cost(self, data):
     acertos = 0
     total = 0
+    checkProgress = len(data) // 100
     
     tests = self.separaDadosParaValidacao(data)
 
@@ -142,13 +148,14 @@ class HMM:
           acertos +=1
         total+=1
       i+=1
-      if i % self.checkpoint == 0:
+      if total % checkProgress == 0:
         print(".", end = '')
 
     print(">")
     return acertos/total
 
   def fullCost(self, data):
+    checkProgress = len(data) // 100
     estadosList = self.estados.copy()
     estadosList.append('')
     #Acertou todos os estados da vaga
@@ -205,9 +212,9 @@ class HMM:
       totalPar += qtd
 
       totalVagas+=1
-      if totalVagas % self.checkpoint == 0:
+      if totalVagas % checkProgress == 0:
         print(".", end = '')
-
+        
     percTransicao = {}
     percEstado = {}
     for estado in estadosList:
@@ -294,9 +301,9 @@ class HMM:
     data["A"] = self.A
     data["B"] = self.B
     data["Pi"] = self.Pi   
-    #data["CountA"] = self.CountA
-    #data["CountB"] = self.CountB
-    #data["CountPi"] = self.CountPi 
+    data["CountA"] = self.CountA
+    data["CountB"] = self.CountB
+    data["CountPi"] = self.CountPi 
     with open(path, 'w') as fp:
       json.dump(data, fp)
 
@@ -307,9 +314,9 @@ class HMM:
     self.A = data["A"]    
     self.B = data["B"]    
     self.Pi = data["Pi"]
-    #self.CountA = data["CountA"]
-    #self.CountB = data["CountB"]
-    #self.CountPi = data["CountPi"]
+    self.CountA = data["CountA"]
+    self.CountB = data["CountB"]
+    self.CountPi = data["CountPi"]
 
   def salvaDados(self, path):
     data = {}

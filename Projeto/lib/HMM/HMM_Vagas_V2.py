@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from .HMM_Vagas import HMM
 
 class HMM_Vagas_V2(HMM):
@@ -8,69 +6,37 @@ class HMM_Vagas_V2(HMM):
     super().__init__(data, trainPerc, checkpoint, estados)
     self.unkPercent = unkPercent/100
     
-  def atualizaValores(self, pi, A, B):
+  def atualizaValores(self):
     #Pi
-    for qtd in pi.values():
-      countPi += qtd      
+    totalPi = 0
+    for qtd in self.CountPi.values():
+      if qtd == 0:
+        qtd = 1
+      totalPi += qtd      
     for estado in self.estados:
-      if pi[estado] == 0:
-        pi[estado] = 1
-        countPi += 1
+      if self.CountPi[estado] == 0:
+        self.CountPi[estado] = 1
+        totalPi += 1
         
     for estado in self.estados:
       #Pi
-      self.Pi[estado] = pi[estado] / countPi
+      self.Pi[estado] = self.CountPi[estado] / totalPi
       #A
-      countA = 0
-      for qtd in A[estado].values():
+      totalA = 0
+      for qtd in self.CountA[estado].values():
         if qtd == 0:
             qtd = 1
-        countA += qtd
-      for subState in A[estado]:
-        self.A[estado][subState] = A[estado][subState] / countA
+        totalA += qtd
+      for subState in self.estados:
+        self.A[estado][subState] = self.CountA[estado][subState] / totalA
       #B
-      countB = 0
-      for qtd in B[estado].values():
+      totalB = 0
+      for qtd in self.CountB[estado].values():
         if qtd == 0:
             qtd = 1
-        countB += qtd
-      qtdUnk = int(countB * self.unkPercent)
-      countB += qtdUnk
-      for observacao in B[estado]:
-        if observacao == '<unk>':
-          self.B[estado][observacao] = qtdUnk
-        self.B[estado][observacao] = B[estado][observacao] / countB
-
-  def fit(self, isNewModel = True):
-    
-    t0 = datetime.now()
-    count = 0
-    if isNewModel:
-      self.inicializaEstados()
-      
-    Pi = self.Pi.copy()
-    A = self.A.copy()
-    B = self.B.copy()
-    CountPi = self.CountPi.copy()
-    CountA = self.CountA.copy()
-    CountB = self.CountB.copy()
-    
-    for linha in self.train:
-      estadoAnterior = 0
-      for estado, obs in linha:
-        self.atualizaVocabulario(obs)
-        if estadoAnterior == 0:
-          Pi[estado] += 1
-        else:
-          A[estadoAnterior][estado] +=1
-                
-        B[estado][obs] +=1
-        estadoAnterior = estado
-      count+=1
-
-      if count % self.checkpoint == 0:
-        print("Linha", count)
-
-    self.atualizaValores(Pi, A, B)     
-
-    print("Fit duration:", (datetime.now() - t0))
+        totalB += qtd
+      qtdUnk = int(totalB * self.unkPercent)
+      totalB += qtdUnk
+      self.CountB[estado]['<unk>'] = qtdUnk
+      for observacao in self.observacoes:
+        self.B[estado][observacao] = self.CountB[estado][observacao] / totalB
