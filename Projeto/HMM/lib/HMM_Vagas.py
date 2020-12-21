@@ -107,8 +107,9 @@ class HMM:
         self.CountB[estado][observacao] = 0
         self.B[estado][observacao] = 0
 
-  def predict(self, obs):
+  def predict(self, observacoes):
     #trata observacoes desconhecidas
+    obs = observacoes.copy()
     for i in range(len(obs)):
       if obs[i] not in self.observacoes:
         obs[i] = '<unk>'
@@ -125,7 +126,7 @@ class HMM:
       opt=[]
       for j in V:
         for x,y in j.items():
-          if j[x]==max(j.values()):
+          if j[x]== max(j.values()):
             opt.append(x)
     return opt
   
@@ -176,7 +177,7 @@ class HMM:
         acertosEstado[estado] = 0
         totalEstado[estado] = 0
       for estado2 in estadosList:
-        if estado2 == estado or estado2 == '':
+        if estado2 == '':
           continue
         acertosTransicao[estado][estado2] = 0
         totalTransicao[estado][estado2] = 0
@@ -195,12 +196,10 @@ class HMM:
         if realStates[j] == result[j]:
           acertosTemp +=1
           acertosEstado[realStates[j]] += 1
+          acertosTransicao[lastState][realStates[j]] += 1
         totalEstado[realStates[j]] += 1
-        if lastState != realStates[j]:
-          if realStates[j] == result[j]:
-            acertosTransicao[lastState][realStates[j]] += 1
-          totalTransicao[lastState][realStates[j]] += 1
-
+        totalTransicao[lastState][realStates[j]] += 1
+        
         lastState = realStates[j]
 
       if acertosTemp == qtd:
@@ -217,7 +216,7 @@ class HMM:
     for estado in estadosList:
       percTransicao[estado] = {}
       for estado2 in estadosList:
-        if estado2 == estado or estado2 == '':
+        if estado2 == '':
           continue
 
         if totalTransicao[estado][estado2] == 0:
@@ -264,7 +263,7 @@ class HMM:
     print("\t", tests[n][1])
     print("Previsto")
     print("\t", result)
-    print("Real")
+    print("\nReal")
     print("\t", tests[n][0])
 
     return tests[n][1], result, tests[n][0]
