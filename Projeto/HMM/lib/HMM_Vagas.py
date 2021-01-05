@@ -166,7 +166,9 @@ class HMM:
     acertosTransicao = {}
     totalTransicao = {}
     #Lista de acertos dentro de cada estado
-    acertosEstado = {}
+    VP_Estado = {}
+    FP_Estado = {}
+    FN_Estado = {}
     totalEstado = {}
 
     #Inicializando valores
@@ -174,7 +176,9 @@ class HMM:
       acertosTransicao[estado] = {}
       totalTransicao[estado] = {}
       if estado != '':
-        acertosEstado[estado] = 0
+        VP_Estado[estado] = 0
+        FP_Estado[estado] = 0
+        FN_Estado[estado] = 0
         totalEstado[estado] = 0
       for estado2 in estadosList:
         if estado2 == '':
@@ -195,8 +199,12 @@ class HMM:
       for j in range(qtd):
         if realStates[j] == result[j]:
           acertosTemp +=1
-          acertosEstado[realStates[j]] += 1
+          VP_Estado[realStates[j]] += 1
           acertosTransicao[lastState][realStates[j]] += 1
+        else:
+          FP_Estado[result[j]] += 1
+          FN_Estado[realStates[j]] += 1
+          
         totalEstado[realStates[j]] += 1
         totalTransicao[lastState][realStates[j]] += 1
         
@@ -212,7 +220,9 @@ class HMM:
         print(".", end = '')
         
     percTransicao = {}
-    percEstado = {}
+    precision = {}
+    recall = {}
+    f1_score = {}
     for estado in estadosList:
       percTransicao[estado] = {}
       for estado2 in estadosList:
@@ -225,30 +235,41 @@ class HMM:
           percTransicao[estado][estado2] = acertosTransicao[estado][estado2]/totalTransicao[estado][estado2]
       
       if estado != '':
-        if totalEstado[estado] == 0:
-          percEstado[estado] = -1
+        if VP_Estado[estado] + FP_Estado[estado] == 0:
+          precision[estado] = - 1
         else:
-          percEstado[estado] = acertosEstado[estado]/totalEstado[estado]
+          precision[estado] = VP_Estado[estado] / (VP_Estado[estado] + FP_Estado[estado])
+        if VP_Estado[estado] + FN_Estado[estado] == 0:
+          recall[estado] = -1
+          f1_score[estado] = -1
+        else:
+          recall[estado] = VP_Estado[estado] / (VP_Estado[estado] + FN_Estado[estado])
+          f1_score[estado] = 2 * (precision[estado] * recall[estado]) / (precision[estado] + recall[estado])
 
     print(">")
 
     percTotal =  acertosVagas/totalVagas
-    perc = acertosPar/totalPar
+    acuracia = acertosPar/totalPar
 
-    self.resultadosFullCost = percTotal, perc, percTransicao, percEstado
+    self.resultadosFullCost = percTotal, acuracia, percTransicao, precision, recall, f1_score
     self.exibeFullCost()
 
   def exibeFullCost(self):
-    percTotal, perc, percTransicao, percEstado = self.resultadosFullCost
+    percTotal, acuracia, percTransicao, precision, recall, f1_score = self.resultadosFullCost
     
-    print("Loss:", perc)
+    print("Acuracia:", acuracia)
     print("Percentual acertos totais:", percTotal)
     for estado in percTransicao.keys():
-      if estado == '':
-        print("Loss em estado inicial")
+      if estado != '':
+        print("Precision em", estado, precision[estado])
+        print("Recall em", estado, recall[estado])
+        print("F1 Score em", estado, f1_score[estado])
+        print("Precisão de acerto de transição de estado em", estado)
+        print("\t", percTransicao[estado])
       else:
-        print("Loss em", estado, percEstado[estado])
-      print("\t", percTransicao[estado])
+        print("Precisão de acerto de transição de estado no estado inicial")
+        print("\t", percTransicao[estado])
+      print()
 
   def test(self):
     return self.cost(self.tests)
